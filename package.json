@@ -1,0 +1,34 @@
+{
+  "name": "webhookrelay-ws-client",
+  "version": "0.1.0",
+  "description": "Receive and process webhooks inside your applications without public endpoints or HTTP web server",
+  "main": "lib",
+  "types": "lib/index",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webhookrelay/webhookrelay-ws-client.git"
+  },
+  "keywords": [
+    "websocket",
+    "webhook",
+    "client"
+  ],
+  "author": "Karolis Rusenas",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/webhookrelay/webhookrelay-ws-client/issues"
+  },
+  "homepage": "https://github.com/webhookrelay/webhookrelay-ws-client#readme",
+  "devDependencies": {
+    "@types/ws": "^6.0.1",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "universal-websocket-client": "^1.0.2",
+    "ws": "^6.1.2"
+  }
+}
