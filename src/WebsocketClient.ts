@@ -90,19 +90,18 @@ export default class WebhookRelayClient {
         switch (msg.getType()) {
             case 'status':
                 if (msg.getStatus() === 'authenticated') {                    
-                    this._sendMessage({ action: 'subscribe', buckets: this._buckets });
-                    return
+                    this._sendMessage({ action: 'subscribe', buckets: this._buckets });                    
                 }
                 if (msg.getStatus() === 'subscribed') {
                     console.log('subscribed to webhook stream successfully')
-                    return
                 }
                 
                 if (msg.getStatus() === 'unauthorized') {
-                    throw new Error('authentication to Webhook Relay failed, check your token');
+                    // throw new Error('authentication to Webhook Relay failed, check your token');
                 }
 
-                console.log(`error, status: ${msg.getStatus()}, message: ${msg.getMessage()}`)
+                // console.log(`error, status: ${msg.getStatus()}, message: ${msg.getMessage()}`)
+                this._handler(dataStr)
                 return
             case 'webhook':
                 // raw payload
@@ -110,6 +109,7 @@ export default class WebhookRelayClient {
                 return
             default:
                 console.log(`unknown message type: ${msg.getType()}`)
+                this._handler(dataStr)
                 break;
         }
     }

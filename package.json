@@ -1,6 +1,6 @@
 {
   "name": "webhookrelay-ws-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Receive and process webhooks inside your applications without public endpoints or HTTP web server",
   "main": "lib",
   "types": "lib/index",
