@@ -76,7 +76,7 @@ node app.js
 
 Now, whenever you send webhooks to your public endpoint `https://my.webhookrelay.com/v1/webhooks/<your input ID>`, they will be received inside your application. You can subscribe to multiple buckets. Each message will have a JSON string that you can parse:
 
-```json
+```javascript
 {
   "type": "webhook",             // event type
   "meta": {                      // bucket, input and output information 
