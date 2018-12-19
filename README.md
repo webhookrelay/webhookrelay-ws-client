@@ -63,6 +63,14 @@ var handler = function (data) {
 var run = function () {    
     var client = new ws.WebhookRelayClient(apiKey, apiSecret, ['nodered'], handler)
     client.connect();
+
+    // do some work
+
+    // disconnect whenever connection is no longer needed
+    setTimeout(function(){ 
+        console.log('disconnecting')
+        client.disconnect();
+    }, 10000);
 }
 
 run();
