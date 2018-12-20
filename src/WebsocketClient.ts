@@ -121,7 +121,7 @@ export default class WebhookRelayClient {
                 }
 
                 if (msg.getStatus() === 'unauthorized') {
-                    console.log(`authorization failed, key ${this._key}, secret: ${this._secret}`)
+                    console.log(`authorization failed, key ${this._key}`)
                 }
 
                 // console.log(`error, status: ${msg.getStatus()}, message: ${msg.getMessage()}`)
