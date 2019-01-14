@@ -105,28 +105,31 @@ export default class WebhookRelayClient {
     }
 
     private _receiveMessage(dataStr: string) {
-        let msg = SubscriptionMessage.fromJSON(JSON.parse(dataStr));
+        let msg = SubscriptionMessage.fromJSON(JSON.parse(dataStr))
         if (msg.getType() === 'status' && msg.getStatus() === 'authenticated') {
-            this._sendMessage({ action: 'subscribe', buckets: this._buckets });
+            this._sendMessage({ action: 'subscribe', buckets: this._buckets })
             return
         }
 
         switch (msg.getType()) {
             case 'status':
                 if (msg.getStatus() === 'authenticated') {
-                    this._sendMessage({ action: 'subscribe', buckets: this._buckets });
+                    this._sendMessage({ action: 'subscribe', buckets: this._buckets })                    
                 }
                 if (msg.getStatus() === 'subscribed') {
                     console.log('subscribed to webhook stream successfully')
+                }
+                if (msg.getStatus() === 'ping') {
+                    this._sendMessage({ action: 'pong' })
+                    return
                 }
 
                 if (msg.getStatus() === 'unauthorized') {
                     console.log(`authorization failed, key ${this._key}`)
                 }
-
-                // console.log(`error, status: ${msg.getStatus()}, message: ${msg.getMessage()}`)
+                
                 this._handler(dataStr)
-                return
+                return                
             case 'webhook':
                 // raw payload
                 this._handler(dataStr)
