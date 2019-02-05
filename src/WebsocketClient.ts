@@ -15,6 +15,8 @@ export default class WebhookRelayClient {
     private _manualDisconnect: boolean = false;
     private _connected: boolean = false;
     private _reconnectInterval: number = 1000 * 3;
+    private _missingPingThreshold: number = 90000; // 90 seconds (pings should be every 1 minute)
+    private _countdownTimeout: NodeJS.Timeout;
 
     /** @private */
     constructor(private readonly key: string, secret: string, buckets: string[], handler: (data: string) => void) {
@@ -36,7 +38,7 @@ export default class WebhookRelayClient {
             this._socket.onopen = (event: Event) => {
                 this._connected = true;
                 this._connecting = false;
-                this._sendMessage({ action: 'auth', key: this._key, secret: this._secret });
+                this._sendMessage({ action: 'auth', key: this._key, secret: this._secret });                
                 resolve();
             }
 
@@ -54,6 +56,7 @@ export default class WebhookRelayClient {
                 this._connecting = false;
                 if (this._manualDisconnect) {
                     // nothing to do, manual disconnect
+                    console.log('manual disconnect')
                     return
                 }
                 console.log('connection closed, reconnecting..')
@@ -62,6 +65,19 @@ export default class WebhookRelayClient {
                 }, this._reconnectInterval)
             }
         });
+    }
+
+    /**
+     * Begins connection timeout timer. Used
+     * to identify dead connections when we are missing
+     * pings from the server
+     */
+    protected beginCountdown() {
+        clearTimeout(this._countdownTimeout)
+        this._countdownTimeout = setTimeout(async () => {
+            console.log('pings are missing, reconnecting...')            
+            this._socket.close();           
+        }, this._missingPingThreshold)
     }
 
     /**
@@ -93,7 +109,9 @@ export default class WebhookRelayClient {
     }
 
     private async _reconnect() {
-        this._disconnect();
+        if (this._socket) {
+            this._socket.close();
+        }
         await this.connect();
     }
 
@@ -111,15 +129,17 @@ export default class WebhookRelayClient {
             return
         }
 
-        switch (msg.getType()) {
+        this.beginCountdown();
+
+        switch (msg.getType()) {            
             case 'status':
                 if (msg.getStatus() === 'authenticated') {
                     this._sendMessage({ action: 'subscribe', buckets: this._buckets })                    
                 }
                 if (msg.getStatus() === 'subscribed') {
-                    console.log('subscribed to webhook stream successfully')
+                    console.log('subscribed to webhook stream successfully')                    
                 }
-                if (msg.getStatus() === 'ping') {
+                if (msg.getStatus() === 'ping') {                   
                     this._sendMessage({ action: 'pong' })
                     return
                 }
