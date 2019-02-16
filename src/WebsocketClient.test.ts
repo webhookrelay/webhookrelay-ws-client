@@ -8,14 +8,15 @@ const expect = chai.expect;
 describe('Connect to WHR', () => {
   const key = process.env.RELAY_KEY;
   const secret = process.env.RELAY_SECRET;
-  const testBucket = process.env.RELAY_BUCKET;
+  const testBucket = process.env.RELAY_BUCKET;  
 
-  it('should be able to subscribe correctly' , () => {
+  it('should be able to subscribe correctly' , (done) => {
     var handler = function (data: string) {
       console.log(data)
       var msg = JSON.parse(data);
       if (msg.type === 'status' && msg.status == 'subscribed') {
         expect(msg.message).to.have.string(testBucket);
+        done();
         client.disconnect();
       }
     }
@@ -24,18 +25,13 @@ describe('Connect to WHR', () => {
     client.connect();    
   });
 
-  it('should be able to forward the webhook', () => {
-
+  it('should be able to forward the webhook', (done) => {
     var payload = "payload-" + Math.floor((Math.random() * 100000) + 1);
-
+    // creating a handler
     var handler = function (data: string) {
       var msg = JSON.parse(data);
-      if (msg.type === 'status' && msg.status == 'subscribed') {
-        expect(msg.message).to.have.string(testBucket);
-        // make a post request
-        
+      if (msg.type === 'status' && msg.status == 'subscribed') {        
         var dispatchWebhook = function() {
-          console.log('subscribed, making an http request');
           axios.post('https://my.webhookrelay.com/v1/webhooks/9c1f0997-1a34-4357-8a88-87f604daeca9', payload)
           .then(function (response) {          
             expect(response.status).to.equal(200)
@@ -46,13 +42,12 @@ describe('Connect to WHR', () => {
       }
       if (msg.type === 'webhook' && msg.body === payload) {
         expect(msg.method).to.equal('POST');
-        console.log('payload webhook received!')      
+        done();
         client.disconnect();
       }
     }
   
     var client = new WebhookRelayClient(key, secret, [testBucket], handler)
-    client.connect();       
-    
+    client.connect();
   });
 });
