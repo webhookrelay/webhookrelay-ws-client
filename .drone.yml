@@ -16,6 +16,16 @@ steps:
     - npm run build
     - make test
 
+- name: npm-publish
+  image: plugins/npm
+  settings:
+    username:
+      from_secret: npm_username
+    password:
+      from_secret: npm_password
+    email:
+      from_secret: npm_email
+
 - name: slack
   image: plugins/slack
   when:
