@@ -17,12 +17,15 @@ steps:
     - make test
 
 - name: publish
-  image: node:latest
+  image: node:latest  
   environment:
     NPM_TOKEN:
       from_secret: npm_token
   commands:
     - make drone-publish
+  when:
+    event: [ tag ]
+
 
 - name: slack
   image: plugins/slack
