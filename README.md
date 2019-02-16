@@ -2,6 +2,8 @@
     <a href="https://webhookrelay.com" target="_blank"><img width="100"src="https://webhookrelay.com/images/sat_logo.png"></a>
 </p>
 
+[![Build Status](https://drone-kr.webrelay.io/api/badges/webhookrelay/webhookrelay-ws-client/status.svg)](https://drone-kr.webrelay.io/webhookrelay/webhookrelay-ws-client)
+
 ## Problem
 
 Ubiquitous HTTP protocol allows any application to talk to any other application over the network. However, sometimes applications are behind firewalls, routers that don't do NAT, or just don't have an HTTP server at all. In this case applications would have to do HTTP polling that is slower and more resource intensive task.
