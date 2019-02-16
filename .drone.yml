@@ -16,15 +16,13 @@ steps:
     - npm run build
     - make test
 
-- name: npm-publish
-  image: plugins/npm
-  settings:
-    username:
-      from_secret: npm_username
-    password:
+- name: publish
+  image: node:latest
+  environment:
+    NPM_TOKEN:
       from_secret: npm_token
-    email:
-      from_secret: npm_email
+  commands:
+    - make drone-publish
 
 - name: slack
   image: plugins/slack
