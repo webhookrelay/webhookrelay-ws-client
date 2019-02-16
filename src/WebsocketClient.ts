@@ -1,9 +1,12 @@
 var WebSocket = require('universal-websocket-client');
 
+import { Logger, transports, createLogger } from 'winston';
+// import * as winston from "winston";
 import { SubscriptionMessage } from './Messages/WebhookRelayEvent';
 
 export default class WebhookRelayClient {
     private _socket?: WebSocket;
+    private _logger: Logger;
 
     private _key: string = '';
     private _secret: string = '';
@@ -24,6 +27,12 @@ export default class WebhookRelayClient {
         this._secret = secret;
         this._buckets = buckets;
         this._handler = handler;
+
+        this._logger = createLogger({
+            transports: [
+                new transports.Console(),
+            ]
+        });
     }
 
     async connect() {
@@ -38,16 +47,17 @@ export default class WebhookRelayClient {
             this._socket.onopen = (event: Event) => {
                 this._connected = true;
                 this._connecting = false;
-                this._sendMessage({ action: 'auth', key: this._key, secret: this._secret });                
+                this._sendMessage({ action: 'auth', key: this._key, secret: this._secret });
                 resolve();
             }
 
-            this._socket.onmessage = (event: MessageEvent) => {                
+            this._socket.onmessage = (event: MessageEvent) => {
                 this._receiveMessage(event.data)
             }
 
             this._socket.onerror = (event: Event) => {
-                console.log(`error event: ${event}`)
+                this._logger.error(`websocket error: ${event}`)
+
             }
 
             this._socket.onclose = (event: CloseEvent) => {
@@ -55,11 +65,11 @@ export default class WebhookRelayClient {
                 this._connected = false;
                 this._connecting = false;
                 if (this._manualDisconnect) {
-                    // nothing to do, manual disconnect
-                    console.log('manual disconnect')
+                    // nothing to do, manual disconnect                    
+                    this._logger.info('manual disconnect')
                     return
                 }
-                console.log('connection closed, reconnecting..')
+                this._logger.info('connection closed, reconnecting..')              
                 setTimeout(async () => {
                     this._reconnect()
                 }, this._reconnectInterval)
@@ -75,15 +85,20 @@ export default class WebhookRelayClient {
     protected beginCountdown() {
         clearTimeout(this._countdownTimeout)
         this._countdownTimeout = setTimeout(async () => {
-            console.log('pings are missing, reconnecting...')            
-            this._socket.close();           
+            this._logger.warn('pings are missing, reconnecting...')
+            this._connected = false;
+            if (this._socket) {
+                this._socket.close();
+            }
         }, this._missingPingThreshold)
     }
 
     /**
      * Disconnects client
      */
-    protected disconnect() {
+    disconnect() {
+        // don't wait for pings anymore
+        clearTimeout(this._countdownTimeout)
         this._disconnect()
     }
 
@@ -102,6 +117,7 @@ export default class WebhookRelayClient {
     }
 
     private _disconnect() {
+        this._connected = false;
         if (this._socket) {
             this._manualDisconnect = true;
             this._socket.close();
@@ -109,6 +125,7 @@ export default class WebhookRelayClient {
     }
 
     private async _reconnect() {
+        this._connected = false;
         if (this._socket) {
             this._socket.close();
         }
@@ -116,9 +133,15 @@ export default class WebhookRelayClient {
     }
 
     private _sendMessage(obj: any) {
-        const dataStr = JSON.stringify(obj);
         if (this._socket && this._connected) {
-            this._socket.send(dataStr);
+            const dataStr = JSON.stringify(obj);
+            try {
+                this._socket.send(dataStr);
+            } catch (e) {
+                this._logger.error('error while sending message: ', e)
+            }
+        } else {
+            this._logger.warn('attempted to send a message on a closed websocket')
         }
     }
 
@@ -131,31 +154,31 @@ export default class WebhookRelayClient {
 
         this.beginCountdown();
 
-        switch (msg.getType()) {            
+        switch (msg.getType()) {
             case 'status':
                 if (msg.getStatus() === 'authenticated') {
-                    this._sendMessage({ action: 'subscribe', buckets: this._buckets })                    
+                    this._sendMessage({ action: 'subscribe', buckets: this._buckets })
                 }
                 if (msg.getStatus() === 'subscribed') {
-                    console.log('subscribed to webhook stream successfully')                    
+                    this._logger.info('subscribed to webhook stream successfully')
                 }
-                if (msg.getStatus() === 'ping') {                   
+                if (msg.getStatus() === 'ping') {
                     this._sendMessage({ action: 'pong' })
                     return
                 }
 
                 if (msg.getStatus() === 'unauthorized') {
-                    console.log(`authorization failed, key ${this._key}`)
+                    this._logger.error(`authorization failed, key ${this._key}`)
                 }
-                
+
                 this._handler(dataStr)
-                return                
+                return
             case 'webhook':
                 // raw payload
                 this._handler(dataStr)
                 return
             default:
-                console.log(`unknown message type: ${msg.getType()}`)
+                this._logger.warn(`unknown message type: ${msg.getType()}`)
                 this._handler(dataStr)
                 break;
         }
