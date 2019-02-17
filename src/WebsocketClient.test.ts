@@ -1,7 +1,6 @@
 import WebhookRelayClient from './WebsocketClient';
 import axios from 'axios';
 
-import * as mocha from 'mocha';
 import * as chai from 'chai';
 
 const expect = chai.expect;
