@@ -19,7 +19,7 @@ export default class WebhookRelayClient {
     private _key: string = '';
     private _secret: string = '';
     private _buckets: string[] = [];
-    private _api: string = ''; // API address
+    private _api: string = 'https://my.webhookrelay.com'; // API address
 
     private _handler!: (data: string) => void;
 
@@ -31,7 +31,7 @@ export default class WebhookRelayClient {
     private _countdownTimeout: NodeJS.Timeout;
 
     /** @private */
-    constructor(private readonly key: string, secret: string, buckets: string[], handler: (data: string) => void) {
+    constructor(private readonly key: string, secret: string, buckets?: string[], handler?: (data: string) => void) {
         this._key = key;
         this._secret = secret;
         this._buckets = buckets;
@@ -52,7 +52,6 @@ export default class WebhookRelayClient {
             }
             this._connecting = true;
             this._socket = new WebSocket('wss://my.webhookrelay.com/v1/socket');
-            this._api = 'https://my.webhookrelay.com'
 
             this._socket.onopen = (event: Event) => {
                 this._connected = true;
@@ -122,7 +121,6 @@ export default class WebhookRelayClient {
                 response_headers: response.getHeaders()
             };
 
-            console.log(JSON.stringify(payload));
             const basicHandler: hm.BasicCredentialHandler = new hm.BasicCredentialHandler(this._key, this._secret);
             let httpc: httpm.HttpClient = new httpm.HttpClient('webhookrelay-ws-client', [basicHandler]);
             let res: httpm.HttpClientResponse = await httpc.put(this._api + '/v1/logs/' + payload.id, JSON.stringify(payload));
