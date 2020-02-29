@@ -19,6 +19,7 @@
 //   }
 
 export interface Metadata {
+    id: string; // log ID
     bucket_id: string;
     bucket_name: string;
     input_id: string;
@@ -62,7 +63,7 @@ export default class SubscriptionMessage {
     /**
      * Name of the bucket that received the webhook
      */
-   getBucketName(): string {
+    getBucketName(): string {
         return this.meta.bucket_id;
     }
 
@@ -80,6 +81,40 @@ export default class SubscriptionMessage {
 
     static fromJSON(json: any): SubscriptionMessage {
         let msg = Object.create(SubscriptionMessage.prototype);
+        return Object.assign(msg, json, {
+          created: new Date(json.created)
+        });        
+    }
+}
+
+export class ResponseMessage {
+    /** @private */
+    // constructor(readonly _data: ResponseMessage) {}
+    constructor(
+        private meta: Metadata,
+        private status: Number,
+        private headers: Headers,
+        private body: string
+    ) {}
+
+    getMeta(): Metadata {
+        return this.meta;
+    }
+
+    getStatus(): Number {
+        return this.status
+    }
+
+    getHeaders(): Headers {
+        return this.headers
+    }
+
+    getBody(): string {
+        return this.body
+    }
+
+    static fromJSON(json: any): ResponseMessage {
+        let msg = Object.create(ResponseMessage.prototype);
         return Object.assign(msg, json, {
           created: new Date(json.created)
         });        
