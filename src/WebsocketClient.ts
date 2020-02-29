@@ -1,8 +1,16 @@
+// import * as rm from 'typed-rest-client/RestClient';
+// import * as restm from 'typed-rest-client/RestClient';
+
+import * as httpm from 'typed-rest-client/HttpClient';
+import * as hm from 'typed-rest-client/Handlers';
+
 var WebSocket = require('universal-websocket-client');
 
 import { Logger, transports, createLogger } from 'winston';
-// import * as winston from "winston";
-import { SubscriptionMessage } from './Messages/WebhookRelayEvent';
+import { SubscriptionMessage, ResponseMessage} from './Messages/WebhookRelayEvent';
+
+
+// let baseUrl: string = 'https://bin.webhookrelay.com/v1/webhooks/c6647f06-3636-405c-93df-c4ac678b16fb';
 
 export default class WebhookRelayClient {
     private _socket?: WebSocket;
@@ -11,6 +19,7 @@ export default class WebhookRelayClient {
     private _key: string = '';
     private _secret: string = '';
     private _buckets: string[] = [];
+    private _api: string = 'https://my.webhookrelay.com'; // API address
 
     private _handler!: (data: string) => void;
 
@@ -22,7 +31,7 @@ export default class WebhookRelayClient {
     private _countdownTimeout: NodeJS.Timeout;
 
     /** @private */
-    constructor(private readonly key: string, secret: string, buckets: string[], handler: (data: string) => void) {
+    constructor(private readonly key: string, secret: string, buckets?: string[], handler?: (data: string) => void) {
         this._key = key;
         this._secret = secret;
         this._buckets = buckets;
@@ -75,6 +84,54 @@ export default class WebhookRelayClient {
                 }, this._reconnectInterval)
             }
         });
+    }
+
+    async respond(responseJSON: any)  {
+        try {
+            if (responseJSON.length === 0) {
+                console.error('Response message cannot be empty');
+                return
+            } 
+
+            let response = ResponseMessage.fromJSON(responseJSON);
+
+            if (response.getMeta() === undefined) {
+                console.error('Response meta property is missing, ensure that you are passing the same meta from the original payload. Schema can be found here: https://webhookrelay.com/v1/guide/socket-server.html#Schema');
+                return
+            }
+
+            if (response.getMeta().id === '' || response.getMeta().id === null) {
+                console.error('Response meta.id property cannot be empty. Based on this property response can be updated in the system, please pass the whole meta object that you received from Webhook Relay WebSocket server');
+                return
+            }
+
+            interface LogObj {
+                id: string;
+                bucket_id: string;
+                response_body: string;
+                status_code: Number;
+                response_headers: any;
+            }
+    
+            let payload: LogObj = <LogObj>{ 
+                id: response.getMeta().id,
+                bucket_id: response.getMeta().bucket_id,
+                response_body: Buffer.from(response.getBody()).toString('base64'),
+                status_code: response.getStatus(),
+                response_headers: response.getHeaders()
+            };
+
+            const basicHandler: hm.BasicCredentialHandler = new hm.BasicCredentialHandler(this._key, this._secret);
+            let httpc: httpm.HttpClient = new httpm.HttpClient('webhookrelay-ws-client', [basicHandler]);
+            let res: httpm.HttpClientResponse = await httpc.put(this._api + '/v1/logs/' + payload.id, JSON.stringify(payload));
+            if (res.message.statusCode !== 200) {
+                let body: string = await res.readBody();
+                console.error(`Unexpected response from Webhook Relay API (${res.message.statusCode}): ${body}`);
+            }
+        }
+        catch (err) {
+            console.error('Failed: ' + err.message);
+        }        
     }
 
     /**

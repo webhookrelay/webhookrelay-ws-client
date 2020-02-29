@@ -11,6 +11,7 @@ steps:
     RELAY_SECRET:
       from_secret: relay_secret
     RELAY_BUCKET: ws-client-tests
+    RELAY_RESPONSIVE_BUCKET: ws-client-response-test
   commands:
     - npm install
     - npm run build
